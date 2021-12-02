@@ -3,7 +3,7 @@ from typing import List, Union
 import pandas as pd
 
 
-class Tools:
+class InputSignal:
     """Submarine basic toolset from IKEA"""
 
     def __init__(
@@ -33,6 +33,10 @@ class Tools:
             header=header_location,
             names=column_names,
         )
+
+
+class Radar:
+    """Submarine's radar"""
 
     def _step_template(
         self,
