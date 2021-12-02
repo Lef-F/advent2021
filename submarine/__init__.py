@@ -1,1 +1,4 @@
-from submarine.tools import Tools
+from submarine.tools import (
+    Radar,
+    Navigation,
+)
