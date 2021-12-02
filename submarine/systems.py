@@ -1,9 +1,10 @@
 from typing import List, Union
 
+import matplotlib.pyplot as plt
 import pandas as pd
 
 
-class Tools:
+class InputSignal:
     """Submarine basic toolset from IKEA"""
 
     def __init__(
@@ -34,7 +35,16 @@ class Tools:
             names=column_names,
         )
 
-    def _step_template(
+
+class DataTemplates:
+    def __init__(self) -> None:
+        self.navigation_trace = {
+            "depth": [],
+            "horizontal": [],
+            "aim": [],
+        }
+
+    def _radar_stats(
         self,
         col: str,
         step_increments: str,
@@ -49,6 +59,28 @@ class Tools:
             }
         }
 
+    def _reset_trace(self) -> None:
+        for k in self.navigation_trace.keys():
+            self.navigation_trace[k] = []
+
+
+class Radar(InputSignal, DataTemplates):
+    """Submarine's radar"""
+
+    def __init__(
+        self,
+        input,
+        header_location: int = None,
+        column_names: List[str] = None,
+    ) -> None:
+        InputSignal.__init__(
+            self,
+            input,
+            header_location=header_location,
+            column_names=column_names,
+        )
+        DataTemplates.__init__(self)
+
     def _diff(self, df: pd.DataFrame) -> dict:
         diff = {}
         for col in df.columns:
@@ -56,7 +88,7 @@ class Tools:
             step_increments = (df[col].dropna().diff() > 0).sum()
             step_other = df.shape[0] - step_decrements - step_increments
             diff.update(
-                self._step_template(
+                self._radar_stats(
                     col,
                     step_increments,
                     step_decrements,
@@ -137,5 +169,91 @@ class Tools:
         return self._diff(self._rolling_sum(window=window))
 
 
-if __name__ == "__main__":
-    raise NotImplementedError()
+class Navigation(InputSignal, DataTemplates):
+    """The submarine's advanced navigation system."""
+
+    def __init__(
+        self,
+        input,
+        header_location: int = None,
+        column_names: List[str] = None,
+    ) -> None:
+        InputSignal.__init__(
+            self,
+            input,
+            header_location=header_location,
+            column_names=column_names,
+        )
+        DataTemplates.__init__(self)
+
+    def show_plan(self, activate_aim: bool = False) -> None:
+        """Display the navigation plan on-screen.
+
+        Args:
+            activate_aim (bool, optional): Toggle to accommodate for the aiming functionality. Defaults to False.
+        """
+        if activate_aim:
+            plt.scatter(
+                self.navigation_trace["horizontal"],
+                [-1 * h for h in self.navigation_trace["aim"]],
+                c=self.navigation_trace["depth"],
+            )
+            ylabel = "Aim"
+            cbar = plt.colorbar()
+            cbar.set_label("Depth", rotation=270)
+        else:
+            plt.plot(
+                self.navigation_trace["horizontal"],
+                [-1 * h for h in self.navigation_trace["depth"]],
+            )
+            ylabel = "Depth"
+        plt.title("Submarine planned route directions")
+        plt.ylabel(ylabel)
+        plt.xlabel("Horizontal")
+        plt.show()
+
+    def calculate_path(
+        self, activate_aim: bool = False, plot: bool = True, get: bool = False
+    ) -> dict:
+        """Calculate the path from the commands provided.
+
+        Args:
+            activate_aim (bool, optional): Activate the aiming systems and navigation will accommodate for precise aim.
+                Defaults to False because we're not hostile by default.
+            plot (bool, optional): Display the navigation route on-screen. Defaults to True.
+
+        Returns:
+            dict: The expected measures of depth, horizontal and aim values at each step of the journey.
+        """
+        self._reset_trace()
+        depth = 0
+        horizontal = 0
+        aim = 0
+        for direction in self.input_df.iterrows():
+            command = direction[1]["signal"].split()
+            if command[0] == "forward":
+                horizontal += int(command[1])
+                if activate_aim:
+                    depth += aim * int(command[1])
+            if command[0] == "down":
+                if activate_aim:
+                    aim += int(command[1])
+                else:
+                    depth += int(command[1])
+            if command[0] == "up":
+                if activate_aim:
+                    aim -= int(command[1])
+                else:
+                    depth -= int(command[1])
+            self.navigation_trace["depth"].append(depth)
+            self.navigation_trace["horizontal"].append(horizontal)
+            if activate_aim:
+                self.navigation_trace["aim"].append(aim)
+        if plot:
+            self.show_plan(activate_aim=activate_aim)
+        print(
+            "The product of `depth` and `horizontal` values at the final destination will be:",
+            depth * horizontal,
+        )
+        if get:
+            return self.navigation_trace
