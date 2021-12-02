@@ -35,10 +35,15 @@ class InputSignal:
         )
 
 
-class Radar:
-    """Submarine's radar"""
+class DataTemplates:
+    def __init__(self) -> None:
+        self.navigation_trace = {
+            "depth": [],
+            "horizontal": [],
+            "aim": [],
+        }
 
-    def _step_template(
+    def _radar_stats(
         self,
         col: str,
         step_increments: str,
@@ -53,6 +58,28 @@ class Radar:
             }
         }
 
+    def _reset_trace(self) -> None:
+        for k in self.navigation_trace.keys():
+            self.navigation_trace[k] = []
+
+
+class Radar(InputSignal, DataTemplates):
+    """Submarine's radar"""
+
+    def __init__(
+        self,
+        input,
+        header_location: int = None,
+        column_names: List[str] = None,
+    ) -> None:
+        InputSignal.__init__(
+            self,
+            input,
+            header_location=header_location,
+            column_names=column_names,
+        )
+        DataTemplates.__init__(self)
+
     def _diff(self, df: pd.DataFrame) -> dict:
         diff = {}
         for col in df.columns:
@@ -60,7 +87,7 @@ class Radar:
             step_increments = (df[col].dropna().diff() > 0).sum()
             step_other = df.shape[0] - step_decrements - step_increments
             diff.update(
-                self._step_template(
+                self._radar_stats(
                     col,
                     step_increments,
                     step_decrements,
