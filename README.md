@@ -24,3 +24,11 @@ Most of the magic happens in the Jupyter Notebooks inside `/solutions` so go hav
 ## Dev
 
 The source code for `submarine` lives under the `/submarine` folder and its structure is currently work in progress.
+
+## Build
+
+We love poetry so you know what to do 🔥
+
+```bash
+poetry build
+```
