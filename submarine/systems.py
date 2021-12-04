@@ -110,6 +110,48 @@ class Diagnostics(InputSignal, DataTemplates):
         )
         DataTemplates.__init__(self)
 
+    def _binary_str_to_int(self, binary: str) -> int:
+        """Convert binary code to integer.
+        It treats that input as a binary number (base 2) and converts it to a decimal integer (base 10). It
+        returns an integer result.
+        Copied from https://stackoverflow.com/a/32834431
+
+        Args:
+            binary (str): The binary number to be converted to integer.
+
+        Returns:
+            int: The converted integer.
+        """
+        length = len(binary)
+        num = 0
+        for i in range(length):
+            num = num + int(binary[i])
+            num = num * 2
+        return int(num / 2)
+
+
+class PowerConsumption(Diagnostics):
+    """Measure submarine's current power consumption"""
+
+    def __init__(
+        self,
+        input,
+        header_location: int = None,
+        column_names: List[str] = None,
+        data_type: type = str,
+        squeeze: bool = True,
+        verbose: bool = False,
+    ) -> None:
+        Diagnostics.__init__(
+            self,
+            input=input,
+            header_location=header_location,
+            column_names=column_names,
+            data_type=data_type,
+            squeeze=squeeze,
+            verbose=verbose,
+        )
+
         # Calculate power consumption stats from input
         self.power_consumption_stats["bits_per_line"] = (
             self.input_df.astype(str).apply(len).max()
@@ -158,25 +200,6 @@ class Diagnostics(InputSignal, DataTemplates):
         self.power_consumption_stats["gamma_rate"] = "".join(
             self.power_consumption_stats["most_common_bits"]
         )
-
-    def _binary_str_to_int(self, binary: str) -> int:
-        """Convert binary code to integer.
-        It treats that input as a binary number (base 2) and converts it to a decimal integer (base 10). It
-        returns an integer result.
-        Copied from https://stackoverflow.com/a/32834431
-
-        Args:
-            binary (str): The binary number to be converted to integer.
-
-        Returns:
-            int: The converted integer.
-        """
-        length = len(binary)
-        num = 0
-        for i in range(length):
-            num = num + int(binary[i])
-            num = num * 2
-        return int(num / 2)
 
     def _power_consumption(self):
         """Calculate the total power consumption of the submarine reported by the diagnostics."""
