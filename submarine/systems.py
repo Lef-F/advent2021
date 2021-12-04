@@ -54,6 +54,16 @@ class DataTemplates:
             "aim": [],
         }
 
+        self.power_consumption_stats = {
+            "bits_per_line": 0,
+            "bits_per_position": {"0": {}, "1": {}},
+            "most_common_bits": [],
+            "least_common_bits": [],
+            "gamma_rate": 0,
+            "epsilon_rate": 0,
+            "power_consumption": 0,
+        }
+
     def _radar_stats(
         self,
         col: str,
