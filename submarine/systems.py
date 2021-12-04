@@ -58,7 +58,7 @@ class DataTemplates:
             "aim": [],
         }
 
-        self.power_consumption_stats = {
+        self.power_consumption = {
             "bits_per_line": 0,
             "bits_per_position": {"0": {}, "1": {}},
             "most_common_bits": [],
@@ -86,6 +86,39 @@ class DataTemplates:
     def _reset_trace(self) -> None:
         for k in self.navigation_trace.keys():
             self.navigation_trace[k] = []
+
+
+class Diagnostics(InputSignal, DataTemplates):
+    """Submarine's self diagnostics system"""
+
+    def __init__(
+        self,
+        input,
+        header_location: int = None,
+        column_names: List[str] = None,
+        data_type: type = None,
+    ) -> None:
+        InputSignal.__init__(
+            input,
+            header_location=header_location,
+            column_names=column_names,
+            data_type=data_type,
+        )
+        DataTemplates.__init__(self)
+
+        self.power_consumption["bits_per_line"] = (
+            self.input_df.astype(str).apply(len).max()
+        )
+        self._count_bits()
+
+    def _count_bits(self):
+        """Count the occurrence of 0 and 1 bits per position over all rows of the input."""
+        for input in self.input_df:
+            for pos, digit in enumerate(str(input)):
+                try:
+                    self.power_consumption["bits_per_position"][digit][str(pos)] += 1
+                except KeyError:
+                    self.power_consumption["bits_per_position"][digit][str(pos)] = 1
 
 
 class Radar(InputSignal, DataTemplates):
