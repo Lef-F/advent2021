@@ -98,7 +98,6 @@ class Diagnostics(InputSignal, DataTemplates):
         column_names: List[str] = None,
         data_type: type = str,
         squeeze: bool = True,
-        verbose: bool = False,
     ) -> None:
         InputSignal.__init__(
             self,
@@ -140,7 +139,7 @@ class PowerConsumption(Diagnostics):
         column_names: List[str] = None,
         data_type: type = str,
         squeeze: bool = True,
-        verbose: bool = False,
+        verbose: bool = True,
     ) -> None:
         Diagnostics.__init__(
             self,
@@ -149,7 +148,6 @@ class PowerConsumption(Diagnostics):
             column_names=column_names,
             data_type=data_type,
             squeeze=squeeze,
-            verbose=verbose,
         )
 
         # Calculate power consumption stats from input
@@ -215,6 +213,98 @@ class PowerConsumption(Diagnostics):
             )
 
         return self.power_consumption_stats["power_consumption"]
+
+
+class LifeSupport(Diagnostics):
+    """Evaluate the status of the life support systems onboard."""
+
+    def __init__(
+        self,
+        input,
+        header_location: int = None,
+        column_names: List[str] = None,
+        data_type: type = str,
+        squeeze: bool = True,
+        verbose: bool = True,
+    ) -> None:
+        Diagnostics.__init__(
+            self,
+            input=input,
+            header_location=header_location,
+            column_names=column_names,
+            data_type=data_type,
+            squeeze=squeeze,
+        )
+
+        self.most_common = {}
+        self.most_common["binary"] = self._search(input=self.input_df, most_common=True)
+        self.most_common["int"] = self._binary_str_to_int(self.most_common["binary"])
+        self.least_common = {}
+        self.least_common["binary"] = self._search(
+            input=self.input_df, most_common=False
+        )
+        self.least_common["int"] = self._binary_str_to_int(self.least_common["binary"])
+        self.life_support_rating = self.most_common["int"] * self.least_common["int"]
+        if verbose:
+            print(
+                "Submarine's current life support rating is", self.life_support_rating
+            )
+
+    def _bit_stats(self, data: list, bit_pos: int):
+        """Find which rows of the data have which bit (0,1) at the given bit position.
+
+        Args:
+            data (list): The input data
+            bit_pos (int): The bit position to search at
+
+        Returns:
+            dict: A dictionary with two lists documenting which row has which bit on the given position.
+        """
+        bits = {"0": [], "1": []}
+        for row, binary in enumerate(data):
+            bits[binary[bit_pos]].append(row)
+        return bits
+
+    def _search(
+        self, input: List[str], bit_pos: int = 0, most_common: bool = True
+    ) -> str:
+        """A recursive search function to perform comparisons of bits on one position at a time
+        in order to determine which binary number fullfills the search requirements.
+
+        Args:
+            input (list): A list of binary numbers
+            bit_pos (int, optional): The bit position to search at the current recursion level. Defaults to 0.
+            most_common (bool, optional): If True, search for the most popular (or 1) bits, otherwise the least popular (or 0).
+                Defaults to True.
+
+        Returns:
+            str: The binary number that is the result of the search.
+        """
+        if most_common:
+            greater = "1"
+            lesser = "0"
+        else:
+            greater = "0"
+            lesser = "1"
+
+        if len(input) == 1:
+            return input[0]
+
+        stats = self._bit_stats(input, bit_pos)
+
+        if len(stats[lesser]) < len(stats[greater]):
+            result = self._search(
+                [input[i] for i in stats["0"]], bit_pos + 1, most_common=most_common
+            )
+        elif len(stats[lesser]) > len(stats[greater]):
+            result = self._search(
+                [input[i] for i in stats["1"]], bit_pos + 1, most_common=most_common
+            )
+        elif len(stats[lesser]) == len(stats[greater]):
+            result = self._search(
+                [input[i] for i in stats[lesser]], bit_pos + 1, most_common=most_common
+            )
+        return result
 
 
 class Radar(InputSignal, DataTemplates):
