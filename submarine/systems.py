@@ -12,6 +12,7 @@ class InputSignal:
         input,
         header_location: int = None,
         column_names: List[str] = None,
+        data_type: type = None,
     ) -> None:
         """Connect your submarine tools to an input signal
 
@@ -19,12 +20,15 @@ class InputSignal:
             input (str): The path to the csv file with the input signal
             header_location (int, optional): The row on which the csv header appears. Defaults to None.
             column_names (List[str], optional): The name for the columns in the csv file, if they don't exist in it. Defaults to None.
+            data_type (type, optional): The data type (if known) of the input data. Defaults to None.
+                Read more at https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_csv.html
         """
         self.input = input
         self.header_location = header_location
         self.input_df = self._input_loader(
             header_location=header_location,
             column_names=column_names,
+            data_type=data_type,
         )
         self.input_shape = self.input_df.shape
 
