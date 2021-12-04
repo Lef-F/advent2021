@@ -110,6 +110,7 @@ class Diagnostics(InputSignal, DataTemplates):
             self.input_df.astype(str).apply(len).max()
         )
         self._count_bits()
+        self._calculate_popularity()
 
     def _count_bits(self):
         """Count the occurrence of 0 and 1 bits per position over all rows of the input."""
@@ -119,6 +120,22 @@ class Diagnostics(InputSignal, DataTemplates):
                     self.power_consumption["bits_per_position"][digit][str(pos)] += 1
                 except KeyError:
                     self.power_consumption["bits_per_position"][digit][str(pos)] = 1
+
+    def _calculate_popularity(self):
+        """Measure which bits (0,1) are the most common per position."""
+        for pos in range(self.power_consumption["bits_per_line"]):
+            if (
+                self.power_consumption["bits_per_position"]["0"][str(pos)]
+                > self.power_consumption["bits_per_position"]["1"][str(pos)]
+            ):
+                self.power_consumption["most_common_bits"].append("0")
+                self.power_consumption["least_common_bits"].append("1")
+            elif (
+                self.power_consumption["bits_per_position"]["0"][str(pos)]
+                < self.power_consumption["bits_per_position"]["1"][str(pos)]
+            ):
+                self.power_consumption["most_common_bits"].append("1")
+                self.power_consumption["least_common_bits"].append("0")
 
 
 class Radar(InputSignal, DataTemplates):
