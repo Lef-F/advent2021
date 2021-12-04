@@ -32,11 +32,17 @@ class InputSignal:
         )
         self.input_shape = self.input_df.shape
 
-    def _input_loader(self, header_location: int, column_names: List[str]):
+    def _input_loader(
+        self,
+        header_location: int,
+        column_names: List[str],
+        data_type: type,
+    ) -> pd.DataFrame:
         return pd.read_csv(
             self.input,
             header=header_location,
             names=column_names,
+            dtype=data_type,
         )
 
 
