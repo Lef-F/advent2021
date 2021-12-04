@@ -1,4 +1,5 @@
 from submarine.systems import (
     Radar,
     Navigation,
+    Diagnostics,
 )

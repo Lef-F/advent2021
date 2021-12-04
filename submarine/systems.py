@@ -58,7 +58,7 @@ class DataTemplates:
             "aim": [],
         }
 
-        self.power_consumption = {
+        self.power_consumption_stats = {
             "bits_per_line": 0,
             "bits_per_position": {"0": {}, "1": {}},
             "most_common_bits": [],
@@ -96,46 +96,102 @@ class Diagnostics(InputSignal, DataTemplates):
         input,
         header_location: int = None,
         column_names: List[str] = None,
-        data_type: type = None,
+        data_type: type = str,
+        squeeze: bool = True,
+        verbose: bool = False,
     ) -> None:
         InputSignal.__init__(
-            input,
+            self,
+            input=input,
             header_location=header_location,
             column_names=column_names,
             data_type=data_type,
+            squeeze=squeeze,
         )
         DataTemplates.__init__(self)
 
-        self.power_consumption["bits_per_line"] = (
+        # Calculate power consumption stats from input
+        self.power_consumption_stats["bits_per_line"] = (
             self.input_df.astype(str).apply(len).max()
         )
         self._count_bits()
         self._calculate_popularity()
+        self._calculate_rates()
+        self.power_consumption = self._power_consumption()
+        if verbose:
+            print("Submarine's current power consumption is", self.power_consumption)
 
     def _count_bits(self):
         """Count the occurrence of 0 and 1 bits per position over all rows of the input."""
         for input in self.input_df:
             for pos, digit in enumerate(str(input)):
                 try:
-                    self.power_consumption["bits_per_position"][digit][str(pos)] += 1
+                    self.power_consumption_stats["bits_per_position"][digit][
+                        str(pos)
+                    ] += 1
                 except KeyError:
-                    self.power_consumption["bits_per_position"][digit][str(pos)] = 1
+                    self.power_consumption_stats["bits_per_position"][digit][
+                        str(pos)
+                    ] = 1
 
     def _calculate_popularity(self):
         """Measure which bits (0,1) are the most common per position."""
-        for pos in range(self.power_consumption["bits_per_line"]):
+        for pos in range(self.power_consumption_stats["bits_per_line"]):
             if (
-                self.power_consumption["bits_per_position"]["0"][str(pos)]
-                > self.power_consumption["bits_per_position"]["1"][str(pos)]
+                self.power_consumption_stats["bits_per_position"]["0"][str(pos)]
+                > self.power_consumption_stats["bits_per_position"]["1"][str(pos)]
             ):
-                self.power_consumption["most_common_bits"].append("0")
-                self.power_consumption["least_common_bits"].append("1")
+                self.power_consumption_stats["most_common_bits"].append("0")
+                self.power_consumption_stats["least_common_bits"].append("1")
             elif (
-                self.power_consumption["bits_per_position"]["0"][str(pos)]
-                < self.power_consumption["bits_per_position"]["1"][str(pos)]
+                self.power_consumption_stats["bits_per_position"]["0"][str(pos)]
+                < self.power_consumption_stats["bits_per_position"]["1"][str(pos)]
             ):
-                self.power_consumption["most_common_bits"].append("1")
-                self.power_consumption["least_common_bits"].append("0")
+                self.power_consumption_stats["most_common_bits"].append("1")
+                self.power_consumption_stats["least_common_bits"].append("0")
+
+    def _calculate_rates(self):
+        """Calculate the gamma and epsilon rates."""
+        self.power_consumption_stats["epsilon_rate"] = "".join(
+            self.power_consumption_stats["least_common_bits"]
+        )
+        self.power_consumption_stats["gamma_rate"] = "".join(
+            self.power_consumption_stats["most_common_bits"]
+        )
+
+    def _binary_str_to_int(self, binary: str) -> int:
+        """Convert binary code to integer.
+        It treats that input as a binary number (base 2) and converts it to a decimal integer (base 10). It
+        returns an integer result.
+        Copied from https://stackoverflow.com/a/32834431
+
+        Args:
+            binary (str): The binary number to be converted to integer.
+
+        Returns:
+            int: The converted integer.
+        """
+        length = len(binary)
+        num = 0
+        for i in range(length):
+            num = num + int(binary[i])
+            num = num * 2
+        return int(num / 2)
+
+    def _power_consumption(self):
+        """Calculate the total power consumption of the submarine reported by the diagnostics."""
+        if not self.power_consumption_stats["power_consumption"]:
+            epsilon_rate = self._binary_str_to_int(
+                self.power_consumption_stats["epsilon_rate"],
+            )
+            gamma_rate = self._binary_str_to_int(
+                self.power_consumption_stats["gamma_rate"],
+            )
+            self.power_consumption_stats["power_consumption"] = (
+                epsilon_rate * gamma_rate
+            )
+
+        return self.power_consumption_stats["power_consumption"]
 
 
 class Radar(InputSignal, DataTemplates):
