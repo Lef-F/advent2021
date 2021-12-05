@@ -12,6 +12,8 @@ class InputSignal:
         input,
         header_location: int = None,
         column_names: List[str] = None,
+        data_type: type = None,
+        squeeze: bool = False,
     ) -> None:
         """Connect your submarine tools to an input signal
 
@@ -19,20 +21,32 @@ class InputSignal:
             input (str): The path to the csv file with the input signal
             header_location (int, optional): The row on which the csv header appears. Defaults to None.
             column_names (List[str], optional): The name for the columns in the csv file, if they don't exist in it. Defaults to None.
+            data_type (type, optional): The data type (if known) of the input data. Defaults to None.
+                Read more at https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_csv.html
+            squeeze (bool, optional): Attempt to return a pandas Series if the input has only one column.
         """
         self.input = input
-        self.header_location = header_location
         self.input_df = self._input_loader(
             header_location=header_location,
             column_names=column_names,
+            data_type=data_type,
+            squeeze=squeeze,
         )
         self.input_shape = self.input_df.shape
 
-    def _input_loader(self, header_location: int, column_names: List[str]):
+    def _input_loader(
+        self,
+        header_location: int,
+        column_names: List[str],
+        data_type: type,
+        squeeze: bool = False,
+    ) -> Union[pd.Series, pd.DataFrame]:
         return pd.read_csv(
             self.input,
             header=header_location,
             names=column_names,
+            dtype=data_type,
+            squeeze=squeeze,
         )
 
 
@@ -42,6 +56,16 @@ class DataTemplates:
             "depth": [],
             "horizontal": [],
             "aim": [],
+        }
+
+        self.power_consumption_stats = {
+            "bits_per_line": 0,
+            "bits_per_position": {"0": {}, "1": {}},
+            "most_common_bits": [],
+            "least_common_bits": [],
+            "gamma_rate": 0,
+            "epsilon_rate": 0,
+            "power_consumption": 0,
         }
 
     def _radar_stats(
@@ -62,6 +86,225 @@ class DataTemplates:
     def _reset_trace(self) -> None:
         for k in self.navigation_trace.keys():
             self.navigation_trace[k] = []
+
+
+class Diagnostics(InputSignal, DataTemplates):
+    """Submarine's self diagnostics system"""
+
+    def __init__(
+        self,
+        input,
+        header_location: int = None,
+        column_names: List[str] = None,
+        data_type: type = str,
+        squeeze: bool = True,
+    ) -> None:
+        InputSignal.__init__(
+            self,
+            input=input,
+            header_location=header_location,
+            column_names=column_names,
+            data_type=data_type,
+            squeeze=squeeze,
+        )
+        DataTemplates.__init__(self)
+
+    def _binary_str_to_int(self, binary: str) -> int:
+        """Convert binary code to integer.
+        It treats that input as a binary number (base 2) and converts it to a decimal integer (base 10). It
+        returns an integer result.
+        Copied from https://stackoverflow.com/a/32834431
+
+        Args:
+            binary (str): The binary number to be converted to integer.
+
+        Returns:
+            int: The converted integer.
+        """
+        length = len(binary)
+        num = 0
+        for i in range(length):
+            num = num + int(binary[i])
+            num = num * 2
+        return int(num / 2)
+
+
+class PowerConsumption(Diagnostics):
+    """Measure submarine's current power consumption"""
+
+    def __init__(
+        self,
+        input,
+        header_location: int = None,
+        column_names: List[str] = None,
+        data_type: type = str,
+        squeeze: bool = True,
+        verbose: bool = True,
+    ) -> None:
+        Diagnostics.__init__(
+            self,
+            input=input,
+            header_location=header_location,
+            column_names=column_names,
+            data_type=data_type,
+            squeeze=squeeze,
+        )
+
+        # Calculate power consumption stats from input
+        self.power_consumption_stats["bits_per_line"] = (
+            self.input_df.astype(str).apply(len).max()
+        )
+        self._count_bits()
+        self._calculate_popularity()
+        self._calculate_rates()
+        self.power_consumption = self._power_consumption()
+        if verbose:
+            print("Submarine's current power consumption is", self.power_consumption)
+
+    def _count_bits(self):
+        """Count the occurrence of 0 and 1 bits per position over all rows of the input."""
+        for input in self.input_df:
+            for pos, digit in enumerate(str(input)):
+                try:
+                    self.power_consumption_stats["bits_per_position"][digit][
+                        str(pos)
+                    ] += 1
+                except KeyError:
+                    self.power_consumption_stats["bits_per_position"][digit][
+                        str(pos)
+                    ] = 1
+
+    def _calculate_popularity(self):
+        """Measure which bits (0,1) are the most common per position."""
+        for pos in range(self.power_consumption_stats["bits_per_line"]):
+            if (
+                self.power_consumption_stats["bits_per_position"]["0"][str(pos)]
+                > self.power_consumption_stats["bits_per_position"]["1"][str(pos)]
+            ):
+                self.power_consumption_stats["most_common_bits"].append("0")
+                self.power_consumption_stats["least_common_bits"].append("1")
+            elif (
+                self.power_consumption_stats["bits_per_position"]["0"][str(pos)]
+                < self.power_consumption_stats["bits_per_position"]["1"][str(pos)]
+            ):
+                self.power_consumption_stats["most_common_bits"].append("1")
+                self.power_consumption_stats["least_common_bits"].append("0")
+
+    def _calculate_rates(self):
+        """Calculate the gamma and epsilon rates."""
+        self.power_consumption_stats["epsilon_rate"] = "".join(
+            self.power_consumption_stats["least_common_bits"]
+        )
+        self.power_consumption_stats["gamma_rate"] = "".join(
+            self.power_consumption_stats["most_common_bits"]
+        )
+
+    def _power_consumption(self):
+        """Calculate the total power consumption of the submarine reported by the diagnostics."""
+        if not self.power_consumption_stats["power_consumption"]:
+            epsilon_rate = self._binary_str_to_int(
+                self.power_consumption_stats["epsilon_rate"],
+            )
+            gamma_rate = self._binary_str_to_int(
+                self.power_consumption_stats["gamma_rate"],
+            )
+            self.power_consumption_stats["power_consumption"] = (
+                epsilon_rate * gamma_rate
+            )
+
+        return self.power_consumption_stats["power_consumption"]
+
+
+class LifeSupport(Diagnostics):
+    """Evaluate the status of the life support systems onboard."""
+
+    def __init__(
+        self,
+        input,
+        header_location: int = None,
+        column_names: List[str] = None,
+        data_type: type = str,
+        squeeze: bool = True,
+        verbose: bool = True,
+    ) -> None:
+        Diagnostics.__init__(
+            self,
+            input=input,
+            header_location=header_location,
+            column_names=column_names,
+            data_type=data_type,
+            squeeze=squeeze,
+        )
+
+        self.most_common = {}
+        self.most_common["binary"] = self._search(input=self.input_df, most_common=True)
+        self.most_common["int"] = self._binary_str_to_int(self.most_common["binary"])
+        self.least_common = {}
+        self.least_common["binary"] = self._search(
+            input=self.input_df, most_common=False
+        )
+        self.least_common["int"] = self._binary_str_to_int(self.least_common["binary"])
+        self.life_support_rating = self.most_common["int"] * self.least_common["int"]
+        if verbose:
+            print(
+                "Submarine's current life support rating is", self.life_support_rating
+            )
+
+    def _bit_stats(self, data: list, bit_pos: int):
+        """Find which rows of the data have which bit (0,1) at the given bit position.
+
+        Args:
+            data (list): The input data
+            bit_pos (int): The bit position to search at
+
+        Returns:
+            dict: A dictionary with two lists documenting which row has which bit on the given position.
+        """
+        bits = {"0": [], "1": []}
+        for row, binary in enumerate(data):
+            bits[binary[bit_pos]].append(row)
+        return bits
+
+    def _search(
+        self, input: List[str], bit_pos: int = 0, most_common: bool = True
+    ) -> str:
+        """A recursive search function to perform comparisons of bits on one position at a time
+        in order to determine which binary number fullfills the search requirements.
+
+        Args:
+            input (list): A list of binary numbers
+            bit_pos (int, optional): The bit position to search at the current recursion level. Defaults to 0.
+            most_common (bool, optional): If True, search for the most popular (or 1) bits, otherwise the least popular (or 0).
+                Defaults to True.
+
+        Returns:
+            str: The binary number that is the result of the search.
+        """
+        if most_common:
+            greater = "1"
+            lesser = "0"
+        else:
+            greater = "0"
+            lesser = "1"
+
+        if len(input) == 1:
+            return input[0]
+
+        stats = self._bit_stats(input, bit_pos)
+
+        if len(stats[lesser]) < len(stats[greater]):
+            result = self._search(
+                [input[i] for i in stats["0"]], bit_pos + 1, most_common=most_common
+            )
+        elif len(stats[lesser]) > len(stats[greater]):
+            result = self._search(
+                [input[i] for i in stats["1"]], bit_pos + 1, most_common=most_common
+            )
+        elif len(stats[lesser]) == len(stats[greater]):
+            result = self._search(
+                [input[i] for i in stats[lesser]], bit_pos + 1, most_common=most_common
+            )
+        return result
 
 
 class Radar(InputSignal, DataTemplates):
