@@ -1,5 +1,5 @@
 import subprocess as s
-import os
+import os, sys
 
 
 def main():
@@ -11,6 +11,8 @@ def main():
             ["jupyter", "nbconvert", "--to", "notebook", "--execute", f"solutions/{nb}"]
         )
 
+
+def cleanup():
     nb_leftovers = os.listdir("solutions/")
     nb_leftovers = [nb for nb in nb_leftovers if "nbconvert" in nb]
     for leftover in nb_leftovers:
@@ -20,4 +22,13 @@ def main():
 
 if __name__ == "__main__":
     print("Running all notebooks for testing purposes.")
-    main()
+    error = False
+    try:
+        main()
+        cleanup()
+    except Exception as e:
+        error = True
+        print(e)
+        cleanup()
+        sys.exit(1)
+    sys.exit(0)
