@@ -1,0 +1,22 @@
+name: Run tests
+on: pull_request
+
+jobs:
+  default-version:
+    name: Setup default version
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: setup default python
+      uses: ./
+
+    - name: Validate version
+      run: python --version
+
+    - name: Install dependencies
+      run: make pip-install
+
+    - name: Run tests
+      run: make test
