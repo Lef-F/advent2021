@@ -9,9 +9,6 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
 
-    - name: setup default python
-      uses: ./
-
     - name: Validate version
       run: python --version
 
