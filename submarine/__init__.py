@@ -4,3 +4,5 @@ from submarine.systems import (
     PowerConsumption,
     LifeSupport,
 )
+
+from submarine.entertainment import BingoSolver

@@ -1,3 +1,4 @@
+import re
 from typing import List, Union
 
 import pandas as pd
@@ -47,3 +48,34 @@ class InputSignal:
             dtype=data_type,
             squeeze=squeeze,
         )
+
+
+class ReadBingo:
+    def __init__(self, input: str) -> None:
+        self.input = input
+        with open(self.input, "r") as f:
+            self.bingo_data = f.readlines()
+
+        self._get_drawn_numbers()
+        self._get_boards()
+
+    def _get_drawn_numbers(self):
+        self.drawn_numbers = self.bingo_data[0]
+        self.drawn_numbers = self.drawn_numbers.replace("\n", "")
+        self.drawn_numbers = self.drawn_numbers.split(",")
+        self.drawn_numbers = [int(num) for num in self.drawn_numbers]
+
+    def _get_boards(self):
+        board = []
+        self.raw_boards = []
+        self.number_of_boards = 0
+        for row in self.bingo_data[1:]:
+            if row == "\n":
+                if self.number_of_boards > 0:
+                    self.raw_boards.append(board)
+                board = []
+                self.number_of_boards += 1
+                continue
+            numbers = re.findall("[0-9]*", row)
+            numbers = [int(num.strip()) for num in numbers if len(num) > 0]
+            board.append(numbers)
