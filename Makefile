@@ -8,7 +8,7 @@ build:
 	poetry build
 
 update-requirements:
-	poetry export --without-hashes > requirements.txt
+	poetry export --dev --without-hashes > requirements.txt
 
 test:
 	python3 run_all_test.py
