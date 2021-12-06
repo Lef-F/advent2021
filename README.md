@@ -1,4 +1,4 @@
-# Submarine - Advent of code 2021
+# Submarine - [Advent of code 2021](https://adventofcode.com/2021)
 
 This christmas we will celebrate inside a well equipped Pythonic `submarine`. 🌊
 
