@@ -4,10 +4,14 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 from submarine.inputs import InputSignal
-from submarine.memory import DataTemplates
+from submarine.memory import (
+    NavigationData,
+    PowerConsumptionData,
+    RadarData,
+)
 
 
-class Diagnostics(InputSignal, DataTemplates):
+class Diagnostics(InputSignal):
     """Submarine's self diagnostics system"""
 
     def __init__(
@@ -26,7 +30,6 @@ class Diagnostics(InputSignal, DataTemplates):
             data_type=data_type,
             squeeze=squeeze,
         )
-        DataTemplates.__init__(self)
 
     def _binary_str_to_int(self, binary: str) -> int:
         """Convert binary code to integer.
@@ -48,7 +51,7 @@ class Diagnostics(InputSignal, DataTemplates):
         return int(num / 2)
 
 
-class PowerConsumption(Diagnostics):
+class PowerConsumption(Diagnostics, PowerConsumptionData):
     """Measure submarine's current power consumption"""
 
     def __init__(
@@ -68,6 +71,7 @@ class PowerConsumption(Diagnostics):
             data_type=data_type,
             squeeze=squeeze,
         )
+        PowerConsumptionData.__init__(self)
 
         # Calculate power consumption stats from input
         self.power_consumption_stats["bits_per_line"] = (
@@ -226,7 +230,7 @@ class LifeSupport(Diagnostics):
         return result
 
 
-class Radar(InputSignal, DataTemplates):
+class Radar(InputSignal, RadarData):
     """Submarine's radar"""
 
     def __init__(
@@ -241,7 +245,7 @@ class Radar(InputSignal, DataTemplates):
             header_location=header_location,
             column_names=column_names,
         )
-        DataTemplates.__init__(self)
+        RadarData.__init__(self)
 
     def _diff(self, df: pd.DataFrame) -> dict:
         diff = {}
@@ -331,7 +335,7 @@ class Radar(InputSignal, DataTemplates):
         return self._diff(self._rolling_sum(window=window))
 
 
-class Navigation(InputSignal, DataTemplates):
+class Navigation(InputSignal, NavigationData):
     """The submarine's advanced navigation system."""
 
     def __init__(
@@ -346,7 +350,7 @@ class Navigation(InputSignal, DataTemplates):
             header_location=header_location,
             column_names=column_names,
         )
-        DataTemplates.__init__(self)
+        NavigationData.__init__(self)
 
     def show_plan(self, activate_aim: bool = False) -> None:
         """Display the navigation plan on-screen.

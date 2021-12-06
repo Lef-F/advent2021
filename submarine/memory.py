@@ -1,11 +1,5 @@
-class DataTemplates:
+class PowerConsumptionData:
     def __init__(self) -> None:
-        self.navigation_trace = {
-            "depth": [],
-            "horizontal": [],
-            "aim": [],
-        }
-
         self.power_consumption_stats = {
             "bits_per_line": 0,
             "bits_per_position": {"0": {}, "1": {}},
@@ -16,6 +10,21 @@ class DataTemplates:
             "power_consumption": 0,
         }
 
+
+class NavigationData:
+    def __init__(self) -> None:
+        self.navigation_trace = {
+            "depth": [],
+            "horizontal": [],
+            "aim": [],
+        }
+
+    def _reset_trace(self) -> None:
+        for k in self.navigation_trace.keys():
+            self.navigation_trace[k] = []
+
+
+class RadarData:
     def _radar_stats(
         self,
         col: str,
@@ -30,7 +39,3 @@ class DataTemplates:
                 "other": step_other,
             }
         }
-
-    def _reset_trace(self) -> None:
-        for k in self.navigation_trace.keys():
-            self.navigation_trace[k] = []
