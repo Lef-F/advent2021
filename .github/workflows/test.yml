@@ -23,18 +23,3 @@ jobs:
 
     - name: Run tests
       run: make test
-
-  another-job:
-    name: Some other name
-    needs: test-all-solutions
-    runs-on: ubuntu-latest
-    steps:
-      - name: Hello world from another job
-        run: echo "Hello world from another job"
-
-  yet-another-job:
-    name: Some other other job
-    runs-on: ubuntu-latest
-    steps:
-      - name: Hello world from YET another job
-        run: echo "Hello world from YET another job"
