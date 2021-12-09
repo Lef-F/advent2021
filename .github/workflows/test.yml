@@ -1,11 +1,11 @@
 name: Run tests
 on:
   pull_request:
-    - branches:
-      lef/**
+    branches:
+      - lef/**
   push:
-    - branches:
-      lef/**
+    branches:
+      - lef/**
 
 jobs:
   test-all-solutions:
