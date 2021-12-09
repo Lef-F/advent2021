@@ -3,92 +3,15 @@ from typing import List, Union
 import matplotlib.pyplot as plt
 import pandas as pd
 
-
-class InputSignal:
-    """Submarine basic toolset from IKEA"""
-
-    def __init__(
-        self,
-        input,
-        header_location: int = None,
-        column_names: List[str] = None,
-        data_type: type = None,
-        squeeze: bool = False,
-    ) -> None:
-        """Connect your submarine tools to an input signal
-
-        Args:
-            input (str): The path to the csv file with the input signal
-            header_location (int, optional): The row on which the csv header appears. Defaults to None.
-            column_names (List[str], optional): The name for the columns in the csv file, if they don't exist in it. Defaults to None.
-            data_type (type, optional): The data type (if known) of the input data. Defaults to None.
-                Read more at https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_csv.html
-            squeeze (bool, optional): Attempt to return a pandas Series if the input has only one column.
-        """
-        self.input = input
-        self.input_df = self._input_loader(
-            header_location=header_location,
-            column_names=column_names,
-            data_type=data_type,
-            squeeze=squeeze,
-        )
-        self.input_shape = self.input_df.shape
-
-    def _input_loader(
-        self,
-        header_location: int,
-        column_names: List[str],
-        data_type: type,
-        squeeze: bool = False,
-    ) -> Union[pd.Series, pd.DataFrame]:
-        return pd.read_csv(
-            self.input,
-            header=header_location,
-            names=column_names,
-            dtype=data_type,
-            squeeze=squeeze,
-        )
+from submarine.inputs import InputSignal
+from submarine.memory import (
+    NavigationData,
+    PowerConsumptionData,
+    RadarData,
+)
 
 
-class DataTemplates:
-    def __init__(self) -> None:
-        self.navigation_trace = {
-            "depth": [],
-            "horizontal": [],
-            "aim": [],
-        }
-
-        self.power_consumption_stats = {
-            "bits_per_line": 0,
-            "bits_per_position": {"0": {}, "1": {}},
-            "most_common_bits": [],
-            "least_common_bits": [],
-            "gamma_rate": 0,
-            "epsilon_rate": 0,
-            "power_consumption": 0,
-        }
-
-    def _radar_stats(
-        self,
-        col: str,
-        step_increments: str,
-        step_decrements: str,
-        step_other: str,
-    ) -> dict:
-        return {
-            col: {
-                "increments": step_increments,
-                "decrements": step_decrements,
-                "other": step_other,
-            }
-        }
-
-    def _reset_trace(self) -> None:
-        for k in self.navigation_trace.keys():
-            self.navigation_trace[k] = []
-
-
-class Diagnostics(InputSignal, DataTemplates):
+class Diagnostics(InputSignal):
     """Submarine's self diagnostics system"""
 
     def __init__(
@@ -107,7 +30,6 @@ class Diagnostics(InputSignal, DataTemplates):
             data_type=data_type,
             squeeze=squeeze,
         )
-        DataTemplates.__init__(self)
 
     def _binary_str_to_int(self, binary: str) -> int:
         """Convert binary code to integer.
@@ -129,7 +51,7 @@ class Diagnostics(InputSignal, DataTemplates):
         return int(num / 2)
 
 
-class PowerConsumption(Diagnostics):
+class PowerConsumption(Diagnostics, PowerConsumptionData):
     """Measure submarine's current power consumption"""
 
     def __init__(
@@ -149,6 +71,7 @@ class PowerConsumption(Diagnostics):
             data_type=data_type,
             squeeze=squeeze,
         )
+        PowerConsumptionData.__init__(self)
 
         # Calculate power consumption stats from input
         self.power_consumption_stats["bits_per_line"] = (
@@ -307,7 +230,7 @@ class LifeSupport(Diagnostics):
         return result
 
 
-class Radar(InputSignal, DataTemplates):
+class Radar(InputSignal, RadarData):
     """Submarine's radar"""
 
     def __init__(
@@ -322,7 +245,7 @@ class Radar(InputSignal, DataTemplates):
             header_location=header_location,
             column_names=column_names,
         )
-        DataTemplates.__init__(self)
+        RadarData.__init__(self)
 
     def _diff(self, df: pd.DataFrame) -> dict:
         diff = {}
@@ -412,7 +335,7 @@ class Radar(InputSignal, DataTemplates):
         return self._diff(self._rolling_sum(window=window))
 
 
-class Navigation(InputSignal, DataTemplates):
+class Navigation(InputSignal, NavigationData):
     """The submarine's advanced navigation system."""
 
     def __init__(
@@ -427,7 +350,7 @@ class Navigation(InputSignal, DataTemplates):
             header_location=header_location,
             column_names=column_names,
         )
-        DataTemplates.__init__(self)
+        NavigationData.__init__(self)
 
     def show_plan(self, activate_aim: bool = False) -> None:
         """Display the navigation plan on-screen.

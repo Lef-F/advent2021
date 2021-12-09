@@ -1,4 +1,4 @@
-# Submarine - Advent of code 2021
+# Submarine - [Advent of code 2021](https://adventofcode.com/2021)
 
 This christmas we will celebrate inside a well equipped Pythonic `submarine`. 🌊
 
@@ -24,6 +24,17 @@ Most of the magic happens in the Jupyter Notebooks inside `/solutions` so go hav
 ## Dev
 
 The source code for `submarine` lives under the `/submarine` folder and its structure is currently work in progress.
+
+## Test
+
+Testing is a bit barebones but if it passes it's the best news!
+
+The principle is simple, run ALL the notebooks inside `solutions/` and if none crashes... you win!
+Perform this test now yourself by running:
+
+```bash
+python3 run_all_tests.py
+```
 
 ## Build
 
