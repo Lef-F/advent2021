@@ -1,15 +1,21 @@
 name: Run tests
-on: pull_request
+on:
+  pull_request:
+    branches:
+      - lef/**
+  push:
+    branches:
+      - lef/**
 
 jobs:
-  default-version:
-    name: Setup default version
+  test-all-solutions:
+    name: Testing all solutions
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
       uses: actions/checkout@v2
 
-    - name: Validate version
+    - name: Validate Python version
       run: python --version
 
     - name: Install dependencies
