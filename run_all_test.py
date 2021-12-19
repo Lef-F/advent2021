@@ -7,9 +7,20 @@ def main():
     nbs = [nb for nb in nbs if not "nbconvert" in nb]
     for nb in nbs:
         print("*" * 10, nb, "*" * 10)
-        s.check_call(
-            ["jupyter", "nbconvert", "--to", "notebook", "--execute", f"solutions/{nb}"]
-        )
+        try:
+            s.check_call(
+                [
+                    "jupyter",
+                    "nbconvert",
+                    "--to",
+                    "notebook",
+                    "--execute",
+                    f"solutions/{nb}",
+                ]
+            )
+        except IsADirectoryError:
+            print(f"Skipping {nb}")
+            continue
 
 
 def cleanup():
