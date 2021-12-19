@@ -6,8 +6,8 @@ def main():
     nbs = sorted(os.listdir("solutions/"))
     nbs = [nb for nb in nbs if not "nbconvert" in nb]
     for nb in nbs:
-        print("*" * 10, nb, "*" * 10)
-        try:
+        if ".ipynb" in nb:
+            print("*" * 10, nb, "*" * 10)
             s.check_call(
                 [
                     "jupyter",
@@ -18,9 +18,6 @@ def main():
                     f"solutions/{nb}",
                 ]
             )
-        except IsADirectoryError:
-            print(f"Skipping {nb}")
-            continue
 
 
 def cleanup():
