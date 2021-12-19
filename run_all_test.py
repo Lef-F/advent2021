@@ -6,10 +6,18 @@ def main():
     nbs = sorted(os.listdir("solutions/"))
     nbs = [nb for nb in nbs if not "nbconvert" in nb]
     for nb in nbs:
-        print("*" * 10, nb, "*" * 10)
-        s.check_call(
-            ["jupyter", "nbconvert", "--to", "notebook", "--execute", f"solutions/{nb}"]
-        )
+        if ".ipynb" in nb:
+            print("*" * 10, nb, "*" * 10)
+            s.check_call(
+                [
+                    "jupyter",
+                    "nbconvert",
+                    "--to",
+                    "notebook",
+                    "--execute",
+                    f"solutions/{nb}",
+                ]
+            )
 
 
 def cleanup():
